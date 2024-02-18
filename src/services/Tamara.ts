@@ -59,7 +59,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   await axios.post(`${process.env.TAMARA_API}/payments/capture`, data, { headers });
                   return await this.retrievePayment(paymentSessionData);
             } catch (error) {
-                  console.log(error.message);
+                  this.logger.error(error.message); 
 
                   return error;
             }
@@ -111,7 +111,6 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             
             const cart = await this.itemsService.getCart(context.resource_id);
             this.cart = cart;
-            this.logger.info(`Initiating payment for cart ${context.resource_id}`);
             const currency_code = cart.region.currency_code.toUpperCase();
             const price = context.amount / 100;
 

@@ -19,7 +19,6 @@ class ItemsService {
     }
     async getitems(context): Promise<item[]> {
         const cart = await this.getCart(context.resource_id);
-        console.log(cart);
         const currency_code= cart.region.currency_code.toUpperCase();
         const items = cart.items;
         const itemsArray = items.map((item) => {
