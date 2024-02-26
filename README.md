@@ -1,19 +1,19 @@
 <p align="center">
-  <a href="https://www.medusajs.com">
+  <a href="https://tamara.co">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    <img alt="Medusa logo" src="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png">
+    <img alt="Tamara logo" src="https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png">
     </picture>
   </a>
 </p>
 <h1 align="center">
-  Medusa
+  Tamara
 </h1>
 
 <h4 align="center">
-  <a href="https://docs.medusajs.com">Documentation</a> |
-  <a href="https://www.medusajs.com">Website</a>
+  <a href="https://docs.tamara.co">Documentation</a> |
+  <a href="https://tamara.co">Website</a>
 </h4>
 
 <p align="center">
@@ -34,37 +34,41 @@
 
 ## Compatibility
 
-This starter is compatible with versions >= 1.8.0 of `@medusajs/medusa`. 
+This plugin is compatible with versions >= 1.20.2 of `@medusajs/medusa`. 
 
-## Getting Started
+## How to Install
 
-Visit the [Quickstart Guide](https://docs.medusajs.com/create-medusa-app) to set up a server.
+1\. Run the following command in the directory of the Medusa backend:
 
-Visit the [Docs](https://docs.medusajs.com/development/backend/prepare-environment) to learn more about our system requirements.
+  ```bash
+  yarn add medusa-payment-tamara
+  ```
 
-## What is Medusa
+2\. Set the following environment variables in `.env`:
 
-Medusa is a set of commerce modules and tools that allow you to build rich, reliable, and performant commerce applications without reinventing core commerce logic. The modules can be customized and used to build advanced ecommerce stores, marketplaces, or any product that needs foundational commerce primitives. All modules are open-source and freely available on npm.
+  ```bash
+  TAMARA_TOKEN=YOUR_TAMARA_TOKEN
+  #this is the sandbox api set to xxxx for production 
+  TAMARA_API=https://api-sandbox.tamara.co
+  # the redirecting url for the user 
+  WEB_ENDPOINT="http://localhost:3000"
+  ```
 
-Learn more about [Medusa’s architecture](https://docs.medusajs.com/development/fundamentals/architecture-overview) and [commerce modules](https://docs.medusajs.com/modules/overview) in the Docs.
+3\. In `medusa-config.js` add the following at the end of the `plugins` array:
 
-## Roadmap, Upgrades & Plugins
+  ```js
+  const plugins = [
+    // ...
+    {
+      resolve: `medusa-payment-tamara`,
+      options: {
+        tamara_token: process.env.TAMARA_TOKEN,
+        tamara_api: process.env.TAMARA_API,
+        web_endpoint: process.env.WEB_ENDPOINT
+      },
+    },
+  ]
+  ```
 
-You can view the planned, started and completed features in the [Roadmap discussion](https://github.com/medusajs/medusa/discussions/categories/roadmap).
+---
 
-Follow the [Upgrade Guides](https://docs.medusajs.com/upgrade-guides/) to keep your Medusa project up-to-date.
-
-Check out all [available Medusa plugins](https://medusajs.com/plugins/).
-
-## Community & Contributions
-
-The community and core team are available in [GitHub Discussions](https://github.com/medusajs/medusa/discussions), where you can ask for support, discuss roadmap, and share ideas.
-
-Join our [Discord server](https://discord.com/invite/medusajs) to meet other community members.
-
-## Other channels
-
-- [GitHub Issues](https://github.com/medusajs/medusa/issues)
-- [Twitter](https://twitter.com/medusajs)
-- [LinkedIn](https://www.linkedin.com/company/medusajs)
-- [Medusa Blog](https://medusajs.com/blog/)
