@@ -1,6 +1,6 @@
 {
   "name": "medusa-payment-tamara",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Tamara payment gateway plugin for Medusa",
   "author": "Benzekri Mohammed islam",
   "license": "MIT",
