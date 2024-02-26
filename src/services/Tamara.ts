@@ -11,13 +11,19 @@ import axios, { AxiosResponse } from "axios";
 import { humanizeAmount } from "medusa-core-utils"
 
 class MyPaymentProcessor extends AbstractPaymentProcessor {
+      private   tamara_token: string;
+      private   tamara_api: string;
+      private   web_endpoint: string;
       private    cart: Cart;
       private    itemsService: itemsService;
       private    logger : Logger;
-      constructor({ itemsService, logger }) {
+      constructor({ itemsService, logger  }, options) {
             super(arguments[0]);
             this.itemsService = itemsService;
             this.logger = logger;
+            this.tamara_token = options.tamara_token;
+            this.tamara_api = options.tamara_api;
+            this.web_endpoint = options.web_endpoint;
       }
       updatePaymentData(sessionId: string, data: Record<string, unknown>): Promise<Record<string, unknown> | PaymentProcessorError> {
             throw new Error("1");
@@ -50,13 +56,13 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   }
 
                   const headers = {
-                        authorization: `Bearer ${process.env.TAMARA_TOKEN}`,
+                        authorization: `Bearer ${this.tamara_token}`,
                   };
 
 
 
 
-                  await axios.post(`${process.env.TAMARA_API}/payments/capture`, data, { headers });
+                  await axios.post(`${this.tamara_api}/payments/capture`, data, { headers });
                   return await this.retrievePayment(paymentSessionData);
             } catch (error) {
                   this.logger.error(error.message); 
@@ -83,9 +89,9 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
 
                   const id = paymentSessionData.order_id
                   const headers = {
-                        authorization: `Bearer ${process.env.TAMARA_TOKEN}`,
+                        authorization: `Bearer ${this.tamara_token}`,
                   };
-                  const res = await axios.post(`${process.env.TAMARA_API}/orders/${id}/authorise`, {}, { headers })
+                  const res = await axios.post(`${this.tamara_api}/orders/${id}/authorise`, {}, { headers })
 
 
                   return {
@@ -150,9 +156,9 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                         "currency": currency_code
                   },
                   "merchant_url": {
-                        "success": `${process.env.WEB_ENDPOINT}/checkout`,
-                        "failure": `${process.env.WEB_ENDPOINT}/failure`,
-                        "cancel": `${process.env.WEB_ENDPOINT}/cancel`,
+                        "success": `${this.web_endpoint}/checkout`,
+                        "failure": `${this.web_endpoint}/failure`,
+                        "cancel": `${this.web_endpoint}/cancel`,
                         "notification": "https://example.com/payments/tamarapay"
                   },
                   "platform": "medusa"
@@ -161,11 +167,11 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
 
             const config = {
                   headers: {
-                        Authorization: `Bearer ${process.env.TAMARA_TOKEN}`,
+                        Authorization: `Bearer ${this.tamara_token}`,
                   },
             };
             this.logger.info(`data: ${JSON.stringify(data)}`);
-            const url = `${process.env.TAMARA_API}/checkout`;
+            const url = `${this.tamara_api}/checkout`;
             const response: AxiosResponse = await axios.post(url, data, config);
             const responseData = await response.data;
 
@@ -210,11 +216,11 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
 
 
                   const headers = {
-                        authorization: `Bearer ${process.env.TAMARA_TOKEN}`,
+                        authorization: `Bearer ${this.tamara_token}`,
                   };
 
 
-                  await axios.post(`https://api-sandbox.tamara.co/payments/simplified-refund/${payment_id}`, data, { headers });
+                  await axios.post(`${this.tamara_api}/payments/simplified-refund/${payment_id}`, data, { headers });
 
                   return await this.retrievePayment(paymentSessionData);
             } catch (error) {
@@ -234,11 +240,11 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   }
 
                   const headers = {
-                        authorization: `Bearer ${process.env.TAMARA_TOKEN}`,
+                        authorization: `Bearer ${this.tamara_token}`,
                   };
 
 
-                  const response = await axios.get(`${process.env.TAMARA_API}/orders/${id}`, { headers });
+                  const response = await axios.get(`${this.tamara_api}/orders/${id}`, { headers });
                   const responseData = response.data;
                   return responseData;
             } catch (error) {
