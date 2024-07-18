@@ -131,7 +131,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   "description": `Customer Order n° ${context.resource_id} with total of ${humanizeAmount(context.amount, context.currency_code)}`,
                   "country_code": currency_code.slice(0, 2),
                   "payment_type": "PAY_BY_INSTALMENTS",
-                  "instalments": 3, 
+                  "instalments": 4, 
                   "items": await this.itemsService.getitems(context),
                   "consumer": {
                         "first_name": cart.shipping_address?.first_name|| "Guest",
