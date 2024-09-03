@@ -13,6 +13,7 @@ import { humanizeAmount } from "medusa-core-utils"
 class MyPaymentProcessor extends AbstractPaymentProcessor {
       private   tamara_token: string;
       private   tamara_api: string;
+      private   notification: string;
       private   web_endpoint: string;
       private    cart: Cart;
       private    itemsService: itemsService;
@@ -24,6 +25,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             this.tamara_token = options.tamara_token;
             this.tamara_api = options.tamara_api;
             this.web_endpoint = options.web_endpoint;
+            this.notification = options.notification;
       }
       updatePaymentData(sessionId: string, data: Record<string, unknown>): Promise<Record<string, unknown> | PaymentProcessorError> {
             throw new Error("1");
@@ -160,7 +162,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                         "success": `${this.web_endpoint}/checkout`,
                         "failure": `${this.web_endpoint}/failure`,
                         "cancel": `${this.web_endpoint}/cancel`,
-                        "notification": "https://example.com/payments/tamarapay"
+                        "notification": this.notification,
                   },
                   "platform": "medusa"
 
