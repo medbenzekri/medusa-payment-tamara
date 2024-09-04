@@ -13,6 +13,7 @@ import { humanizeAmount } from "medusa-core-utils"
 class MyPaymentProcessor extends AbstractPaymentProcessor {
       private   tamara_token: string;
       private   tamara_api: string;
+      private   notification: string;
       private   web_endpoint: string;
       private    cart: Cart;
       private    itemsService: itemsService;
@@ -24,6 +25,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             this.tamara_token = options.tamara_token;
             this.tamara_api = options.tamara_api;
             this.web_endpoint = options.web_endpoint;
+            this.notification = options.notification;
       }
       updatePaymentData(sessionId: string, data: Record<string, unknown>): Promise<Record<string, unknown> | PaymentProcessorError> {
             throw new Error("1");
@@ -34,17 +36,9 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
       async capturePayment(paymentSessionData: Record<string, unknown>): Promise<Record<string, unknown> | PaymentProcessorError> {
             const cart = this.cart;
             const amount = cart.total
-            try {
-                  var id;
-                  if (paymentSessionData.hasOwnProperty("payment")) {
-                        // @ts-ignore
-                        id = paymentSessionData.payment.id;
-                  } else {
-                        id = paymentSessionData.id;
-                  }
-                  
+            try {                  
                   const data = {
-                        "order_id": id,
+                        "order_id": paymentSessionData.order_id,
                         "total_amount": {
                               "amount": amount/100,
                               "currency": cart.region.currency_code,
@@ -58,9 +52,6 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   const headers = {
                         authorization: `Bearer ${this.tamara_token}`,
                   };
-
-
-
 
                   await axios.post(`${this.tamara_api}/payments/capture`, data, { headers });
                   return await this.retrievePayment(paymentSessionData);
@@ -77,8 +68,6 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             status:
             PaymentSessionStatus; data: Record<string, unknown>
       }> {
-
-
             try {
 
                   const status = await
@@ -87,11 +76,10 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                         this.retrievePayment(paymentSessionData);
                   const data = { ...temp };
 
-                  const id = paymentSessionData.order_id
                   const headers = {
                         authorization: `Bearer ${this.tamara_token}`,
                   };
-                  const res = await axios.post(`${this.tamara_api}/orders/${id}/authorise`, {}, { headers })
+                  const res = await axios.post(`${this.tamara_api}/orders/${paymentSessionData.order_id}/authorise`, {}, { headers })
 
 
                   return {
@@ -109,8 +97,26 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
       async cancelPayment(
             paymentSessionData: Record<string, unknown>
       ): Promise<Record<string, unknown> | PaymentProcessorError> {
-            return {
-                  id: "cancel",
+            try {                  
+                  const data = {
+                        "total_amount": {
+                              //@ts-ignore
+                              "amount": paymentSessionData.paid_amount.amount,
+                              //@ts-ignore
+                              "currency": paymentSessionData.paid_amount.currency,
+                        }
+                  }
+
+                  const headers = {
+                        authorization: `Bearer ${this.tamara_token}`,
+                  };
+
+                  const response = await axios.post(`${this.tamara_api}/orders/${paymentSessionData.order_id}/cancel`, data, { headers });
+                  
+            } catch (error) {
+                  this.logger.error(error.message); 
+
+                  return error;
             }
       }
       async initiatePayment(context: PaymentProcessorContext): Promise<PaymentProcessorError | PaymentProcessorSessionResponse> {
@@ -118,15 +124,12 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             const cart = await this.itemsService.getCart(context.resource_id);
             this.cart = cart;
             const currency_code = cart.region.currency_code.toUpperCase();
-            const price = context.amount / 100;
-
-            
 
             const data = {
                   "order_reference_id": context.resource_id,
                   "total_amount": {
-                        "amount": price,
-                        "currency": currency_code
+                        "amount": humanizeAmount(context.amount, context.currency_code),
+                        "currency": context.currency_code.toUpperCase()
                   },
                   "description": `Customer Order n° ${context.resource_id} with total of ${humanizeAmount(context.amount, context.currency_code)}`,
                   "country_code": currency_code.slice(0, 2),
@@ -134,14 +137,14 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                   "instalments": 3, 
                   "items": await this.itemsService.getitems(context),
                   "consumer": {
-                        "first_name": cart.customer?.first_name|| "Guest",
-                        "last_name": cart.customer?.last_name || "Customer",
-                        "phone_number": cart.customer?.phone || "+966500000001",
-                        "email": cart.customer?.email || "",
+                        "first_name": cart.shipping_address?.first_name|| "Guest",
+                        "last_name": cart.shipping_address?.last_name || "Customer",
+                        "phone_number": cart.shipping_address?.phone || "+966500000001",
+                        "email": cart.email || "",
                   },
                   "shipping_address": {
-                        "first_name": cart.customer?.first_name || "Guest",
-                        "last_name": cart.customer?.last_name || "Customer",
+                        "first_name": cart.shipping_address?.first_name || "Guest",
+                        "last_name": cart.shipping_address?.last_name || "Customer",
                         "line1": cart.shipping_address?.address_1,
                         "city": cart.shipping_address?.city,
                         "country_code": currency_code.slice(0, 2),
@@ -159,7 +162,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                         "success": `${this.web_endpoint}/checkout`,
                         "failure": `${this.web_endpoint}/failure`,
                         "cancel": `${this.web_endpoint}/cancel`,
-                        "notification": "https://example.com/payments/tamarapay"
+                        "notification": this.notification,
                   },
                   "platform": "medusa"
 
@@ -184,22 +187,26 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
       async getPaymentStatus(
             paymentSessionData: Record<string, unknown>
       ): Promise<PaymentSessionStatus> {
-            return PaymentSessionStatus.AUTHORIZED
+            const responceData = await this.retrievePayment(paymentSessionData);
+            const status = responceData["status"]
+
+        switch (status) {
+            case "authorised":
+                return PaymentSessionStatus.AUTHORIZED;
+            case "canceled":
+                return PaymentSessionStatus.CANCELED;
+            case "new":
+                return PaymentSessionStatus.PENDING;
+            case "new":
+                return PaymentSessionStatus.REQUIRES_MORE;
+            default:
+                return PaymentSessionStatus.ERROR;
+        }
       }
       async refundPayment(paymentSessionData: Record<string, unknown>, refundAmount: number): Promise<Record<string, unknown> | PaymentProcessorError> {
-
-
             try {
-                  var id;
-                  if (paymentSessionData.hasOwnProperty("payment")) {
-                        // @ts-ignore
-                        id = paymentSessionData.payment.id;
-                  } else {
-                        id = paymentSessionData.id;
-                  }
-
                   const amount = refundAmount / 100
-                  const payment_id = id
+                  const payment_id = paymentSessionData.order_id
                   const data = {
 
                         "total_amount":
@@ -208,12 +215,9 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                               amount: amount,
                               currency: this.cart.region.currency_code
                         },
-                        "comment": `Refund for the order ${id}`
+                        "comment": `Refund for the order ${payment_id}`
 
                   }
-
-
-
 
                   const headers = {
                         authorization: `Bearer ${this.tamara_token}`,
@@ -231,20 +235,12 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             paymentSessionData: Record<string, unknown>
       ): Promise<Record<string, unknown> | PaymentProcessorError> {
             try {
-                  var id;
-                  if (paymentSessionData.hasOwnProperty("payment")) {
-                        // @ts-ignore
-                        id = paymentSessionData.payment.id;
-                  } else {
-                        id = paymentSessionData.id;
-                  }
-
                   const headers = {
                         authorization: `Bearer ${this.tamara_token}`,
                   };
 
 
-                  const response = await axios.get(`${this.tamara_api}/orders/${id}`, { headers });
+                  const response = await axios.get(`${this.tamara_api}/orders/${paymentSessionData.order_id}`, { headers });
                   const responseData = response.data;
                   return responseData;
             } catch (error) {
